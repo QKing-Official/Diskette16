@@ -1,5 +1,6 @@
 #include "cart.h"
 
+#include <algorithm>
 #include <utility>
 
 namespace diskette16 {
@@ -16,6 +17,10 @@ Cart::Cart() {
       ColorRGBA{255, 204, 170, 255}, ColorRGBA{255, 255, 255, 255},
   };
   fill(0);
+  EnsureScript("init", "title Init\nprint init\n");
+  EnsureScript("update", "print update\n");
+  EnsureScript("player", "print player\n");
+  entities.push_back(Entity{"player", 6, 6, 1, {"player"}});
 }
 
 int &Cart::tile(int x, int y) {
@@ -36,6 +41,58 @@ void Cart::clearLog() {
 
 void Cart::pushLog(std::string message) {
   log.push_back(std::move(message));
+}
+
+Cart::ScriptSource *Cart::FindScript(const std::string &name) {
+  for (auto &script : scripts) {
+    if (script.name == name) {
+      return &script;
+    }
+  }
+  return nullptr;
+}
+
+const Cart::ScriptSource *Cart::FindScript(const std::string &name) const {
+  for (const auto &script : scripts) {
+    if (script.name == name) {
+      return &script;
+    }
+  }
+  return nullptr;
+}
+
+Cart::ScriptSource &Cart::EnsureScript(const std::string &name, std::string source) {
+  if (ScriptSource *existing = FindScript(name); existing != nullptr) {
+    if (!source.empty()) {
+      existing->source = std::move(source);
+    }
+    return *existing;
+  }
+
+  scripts.push_back(ScriptSource{name, std::move(source)});
+  return scripts.back();
+}
+
+void Cart::AddScriptToTile(int tile_id, const std::string &script_name) {
+  if (tile_id < 0 || tile_id >= kPaletteSize) {
+    return;
+  }
+
+  auto &bindings = tile_scripts[static_cast<std::size_t>(tile_id)];
+  if (std::find(bindings.begin(), bindings.end(), script_name) == bindings.end()) {
+    bindings.push_back(script_name);
+  }
+}
+
+void Cart::AddScriptToEntity(std::size_t entity_index, const std::string &script_name) {
+  if (entity_index >= entities.size()) {
+    return;
+  }
+
+  auto &bindings = entities[entity_index].scripts;
+  if (std::find(bindings.begin(), bindings.end(), script_name) == bindings.end()) {
+    bindings.push_back(script_name);
+  }
 }
 
 }  // namespace diskette16

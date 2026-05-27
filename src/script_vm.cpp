@@ -145,4 +145,25 @@ bool ScriptVM::Run(const std::string &source, Cart &cart, std::string *error) {
   return true;
 }
 
+bool ScriptVM::RunNamed(const std::string &script_name, Cart &cart, std::string *error) {
+  const Cart::ScriptSource *script = cart.FindScript(script_name);
+  if (script == nullptr) {
+    if (error != nullptr) {
+      *error = "missing script '" + script_name + "'";
+    }
+    return false;
+  }
+
+  return Run(script->source, cart, error);
+}
+
+bool ScriptVM::RunMany(const std::vector<std::string> &script_names, Cart &cart, std::string *error) {
+  for (const std::string &script_name : script_names) {
+    if (!RunNamed(script_name, cart, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 }  // namespace diskette16
